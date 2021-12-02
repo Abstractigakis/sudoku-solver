@@ -1,4 +1,5 @@
-from numpy import loadtxt, ndarray
+from numpy import loadtxt, ndarray, where
+from typing import Union
 
 
 class SudokuPuzzleSolver:
@@ -48,14 +49,29 @@ class SudokuPuzzleSolver:
             and not self.is_num_in_col(num, col) \
             and not self.is_num_in_section(num, row, col)
 
-    def get_first_blank(self):
-        for i in range(len(self.puzzle)):
-            for j in range(len(self.puzzle[i])):
-                if self.puzzle[i][j] == 0:
-                    return i, j
-        return False
+    def get_all_indicies_that_are_num(self, num: int) -> tuple:
+        """gets all the indicies that are num int the puzzle
+
+        Returns:
+            tuple: for an index i, result[0][i], result[1][i] represents the x, y pair of a num
+        """
+        return where(self.puzzle == num)
+
+    def get_first_blank(self) -> Union[tuple[int, int], bool]:
+        """returns x, y coordinates of first blank entry in puzzle or false if there are none
+
+        Returns:
+            Union[tuple[int, int], bool]: x, y coordinates of first blank entry in puzzle or false if there are none
+        """
+        blanks = self.get_all_indicies_that_are_num(0)
+        if len(blanks[0]) == 0:
+            return False
+        return blanks[0][0], blanks[1][0]
+
+    def get_domains(self):
+        pass
 
 
 if __name__ == "__main__":
     sps = SudokuPuzzleSolver("../sudoku_problems/1/1.sd")
-    print(sps)
+    print(sps.get_first_blank())
