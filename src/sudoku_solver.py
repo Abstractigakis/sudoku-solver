@@ -1,8 +1,8 @@
-from numpy import loadtxt, ndarray, where
+from numpy import loadtxt, ndarray, void, where, fromfunction
 from typing import Union
 
 
-class SudokuPuzzleSolver:
+class SudokuSolver:
     """Loads a numpy representation of a sudoku puzzle, and has methods that can be solve via the backtrace A algorithm with some optimizations
     """
 
@@ -13,6 +13,8 @@ class SudokuPuzzleSolver:
             path_to_puzzle (str): this file type must be .sd
         """
         self.puzzle: ndarray = loadtxt(path_to_puzzle, dtype=int)
+        self.inital_puzzle: ndarray = self.puzzle
+        self.domains: ndarray = self.get_domains()
 
     def __repr__(self) -> str:
         return str(self.puzzle)
@@ -42,12 +44,10 @@ class SudokuPuzzleSolver:
         return self.puzzle[x:x+3, y:y+3]
 
     def is_num_in_section(self, num: int, row: int, col: int) -> bool:
-        return num in self.get_section_corner(row, col)
+        return num in self.get_section(row, col)
 
     def is_safe_to_insert(self, num: int, row: int, col: int) -> bool:
-        return not self.is_num_in_row(num, row) \
-            and not self.is_num_in_col(num, col) \
-            and not self.is_num_in_section(num, row, col)
+        return not self.is_num_in_row(num, row) and not self.is_num_in_col(num, col) and not self.is_num_in_section(num, row, col)
 
     def get_all_indicies_that_are_num(self, num: int) -> tuple:
         """gets all the indicies that are num int the puzzle
@@ -68,10 +68,13 @@ class SudokuPuzzleSolver:
             return False
         return blanks[0][0], blanks[1][0]
 
-    def get_domains(self):
-        pass
+    def get_domains(self) -> void:
+        """set the domains property for the current puzzle state, which is a 3d boolean tensor where
+        each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
+        """
+        return fromfunction(
+            lambda i, j, k: self.is_safe_to_insert(k, i, j), (9, 9, 9), dtype=int)
 
 
 if __name__ == "__main__":
-    sps = SudokuPuzzleSolver("../sudoku_problems/1/1.sd")
-    print(sps.get_first_blank())
+    sps = SudokuSolver("../sudoku_problems/44/1.sd")

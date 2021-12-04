@@ -1,4 +1,5 @@
-from utils.get_puzzle import get_puzzle
+from utils.sudoku_puzzle_solver import SudokuPuzzleSolver
 
-puzzle = get_puzzle("./sudoku_problems/1/1.sd")
-print(puzzle)
+
+SudokuPuzzleSolver("./sudoku_problems/1/1.sd")
+print(SudokuPuzzleSolver)
