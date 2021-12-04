@@ -78,3 +78,4 @@ class SudokuSolver:
 
 if __name__ == "__main__":
     sps = SudokuSolver("../sudoku_problems/44/1.sd")
+    print(sps.get_domains())
