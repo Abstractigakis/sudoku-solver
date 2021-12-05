@@ -38,3 +38,5 @@ It is also important to note that by default in Numpy, `ndarray`s are actually p
 can we use rust to better optimze our code?  How can we build the objects we need ndarrays to make this work?
 
 rather than pass the puzzle everywhere, and to get the domains, calculate on the fly with the `get_domains()` method, we should consider passing a gamestate object that has its own copy mehtod. A gamestate would consist of $X$ and $D$ and have methods like `attempt_insert` and `compress` to condese the representation of the gamestate.  In this way, the `SudokuSolver` could keep a memory of gamestates it has already seen, and skip.
+
+create a class for the return value from the backtracking algorithm, and custom exceptions
