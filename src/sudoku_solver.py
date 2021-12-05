@@ -1,6 +1,8 @@
 from numpy import loadtxt, ndarray, vectorize, void, where, fromfunction
 from typing import Union
 
+from .exceptions import ImpossiblePuzzle, MaxAtteptsReached
+
 
 class SudokuSolver:
     """Loads a numpy representation of a sudoku puzzle, and has methods that can be solve via the backtrace A algorithm with some optimizations
@@ -134,11 +136,11 @@ class SudokuSolver:
     def reset_naive_back_tracking_attempt_counter(self, max_attempts: int = 10000):
         self.naive_back_tracking_attempt_counter: int = max_attempts
 
-    def naive_back_tracking_attempt(self, puzzle: ndarray):
+    def naive_back_tracking_attempt(self, puzzle: ndarray, max_attempts: int):
         if self.naive_back_tracking_attempt_counter <= 0:
             # give up, because the naive way is too long
             self.naive_back_tracking_attempt_counter = None
-            raise Exception(f"Max attempts reached")
+            raise MaxAtteptsReached(f"Max attempts {max_attempts} reached")
 
         # attempting a gamestate
         self.naive_back_tracking_attempt_counter -= 1
@@ -159,7 +161,7 @@ class SudokuSolver:
                 # possible to insert k into X[i][j], so we should try this
                 # and recursivly call backtracking on it
                 result_puzzle = self.naive_back_tracking_attempt(
-                    puzzle=next_puzzle)
+                    puzzle=next_puzzle, max_attempts=max_attempts)
 
                 # continue back tracking, if eventually we reach contradiction,
                 if isinstance(result_puzzle, ndarray):
@@ -174,13 +176,22 @@ class SudokuSolver:
         # at this point, for a given blank spot in the
         # puzzle, we have tried to insert all numbers,
         # but none were suitable.  So puzzle is not solvable
-        return False
+        raise ImpossiblePuzzle("Puzzle is intractible")
 
     def naive_back_tracking(self, max_attempts=10000):
         self.reset_naive_back_tracking_attempt_counter(max_attempts)
-        solution = self.naive_back_tracking_attempt(self.initial_puzzle)
-        num_attempts = max_attempts - self.naive_back_tracking_attempt_counter
-        return solution, num_attempts
+
+        try:
+            solution = self.naive_back_tracking_attempt(
+                puzzle=self.initial_puzzle, max_attempts=max_attempts)
+
+        except MaxAtteptsReached:
+            return False, max_attempts
+
+        except ImpossiblePuzzle:
+            return False, max_attempts - self.naive_back_tracking_attempt_counter
+
+        return solution, max_attempts - self.naive_back_tracking_attempt_counter
 
 
 if __name__ == '__main__':
