@@ -27,16 +27,17 @@ class SudokuSolver:
         Args:
             path_to_puzzle (str): this file type must be .sd
         """
+        self.new_puzzle(path_to_puzzle)
+
+    def new_puzzle(self, path_to_puzzle: str) -> void:
         self.path_to_puzzle = path_to_puzzle
         self.initial_puzzle = self.load_puzzle(path_to_puzzle)
 
     def __repr__(self) -> str:
-        return str(self.puzzle)
+        return str(self)
 
     def __str__(self) -> str:
-        return f"""
-        naive_back_tracking_attempt_counter {self.naive_back_tracking_attempt_counter}
-        """
+        return str(self.initial_puzzle)
 
     @staticmethod
     def assert_num_is_valid(num: int):
@@ -44,12 +45,10 @@ class SudokuSolver:
 
     @staticmethod
     def is_num_in_row(puzzle: ndarray, num: int, row: int) -> bool:
-        __class__.assert_num_is_valid(num)
         return num in puzzle[row]
 
     @staticmethod
     def is_num_in_col(puzzle: ndarray, num: int, col: int) -> bool:
-        __class__.assert_num_is_valid(num)
         return num in puzzle[:, col]
 
     @staticmethod
@@ -71,7 +70,6 @@ class SudokuSolver:
 
     @staticmethod
     def is_num_in_section(puzzle: ndarray, num: int, row: int, col: int) -> bool:
-        __class__.assert_num_is_valid(num)
         return num in __class__.get_section(puzzle, row, col)
 
     @staticmethod
@@ -118,22 +116,70 @@ class SudokuSolver:
         return fromfunction(
             lambda i, j, k: vfunc(puzzle=puzzle, num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
 
+    @staticmethod
+    def attempt_insert_num(puzzle: ndarray, num: int, row: int, col: int):
+        __class__.assert_num_is_valid(num)
+
+        if not __class__.is_safe_to_insert(puzzle=puzzle, num=num, row=row, col=col):
+            return False
+
+        # ndarrays are referrences, and and the actuall tensor sits on the heap.
+        # if we set a value without first creating a copy, we will have to mutate.
+        # this will make it harder to implement concurrent branches of the backtracking
+        # algorithm.  the simple solution is deep copy the puzzle
+        next_puzzle = puzzle.copy()
+        next_puzzle[row][col] = num
+        return next_puzzle
+
     def reset_naive_back_tracking_attempt_counter(self, max_attempts: int = 10000):
         self.naive_back_tracking_attempt_counter: int = max_attempts
 
     def naive_back_tracking_attempt(self, puzzle: ndarray):
+        print(self.naive_back_tracking_attempt_counter)
         if self.naive_back_tracking_attempt_counter <= 0:
             # give up, because the naive way is too long
             self.naive_back_tracking_attempt_counter = None
-            return False
+            raise Exception(f"Max attempts reached")
 
-        self.naive_back_tracking_attempt_counter -= 1
-
+        # this is the naive part, attempt to fill the first blank tile we see
         first_blank_tile = self.get_first_blank(puzzle)
         if(not first_blank_tile):
-            return True
+            # nothing is blank, puzzle solved!
+            return puzzle
+
+        x, y = first_blank_tile
+        for k in range(1, 10):
+            next_puzzle = __class__.attempt_insert_num(
+                puzzle=puzzle, num=k, row=x, col=y)
+
+            if isinstance(next_puzzle, ndarray):
+                # the case where next_puzzle is computed, meaning that it is
+                # possible to insert k into X[i][j], so we should try this
+                # and recursivly call backtracking on it
+                result_puzzle = self.naive_back_tracking_attempt(
+                    puzzle=next_puzzle)
+
+                # continue back tracking, if eventually we reach contradiction,
+                if isinstance(result_puzzle, ndarray):
+                    # the case where the result puzzle was completed!
+                    #  return the puzzle as the final solution
+                    return result_puzzle
+
+                # this k caused a issue, either it can't be inserted, or
+                # it can be inserted, but caused a deeper issue that could
+                # not be resolved, try k+1
+
+        # at this point, for a given blank spot in the
+        # puzzle, we have tried to insert all numbers,
+        # but none were suitable.  So puzzle is not solvable
         return False
 
     def naive_back_tracking(self, max_attempts=10000):
         self.reset_naive_back_tracking_attempt_counter(max_attempts)
         return self.naive_back_tracking_attempt(self.initial_puzzle)
+
+
+if __name__ == '__main__':
+    SS = SudokuSolver("../test_sudoku_problems/a.sd")
+    res = SS.naive_back_tracking()
+    print(res)

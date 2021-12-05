@@ -1,5 +1,4 @@
-# sudoku-solver
-
+# Sudoku Sovler
 ## Problem Statement
 
 For the rules of sudoku, google it, and play some games!
@@ -7,8 +6,6 @@ For the rules of sudoku, google it, and play some games!
 The objective is to create an algorithm that can effeciently solve any valid sudoku puzzle.
 
 To complete this, we will use the backtracking algorithm, a bruteforce depth-first-search.
-
-## Defenitions
 
 A sudoku problem can be represented by a $9$ x $9$ tensor called $X$ where $X_{i,j}$ is an integer between $0$ and $9$. $X_{i,j} = 0$ is the case where the tile is empty.
 
@@ -18,7 +15,7 @@ Some facts to realize is that if we know a number on a tile conclusively, we can
 
 $$X_{i,j} \neq 0 \iff D_{i,j,k} = 0 \ \forall k$$
 
-Also Notice that given a gamestate $X$ we can uniquley compute the Domains $D$
+Also Notice that given a gamestate $X$ we can uniquley compute the Domains $D$ 
 
 ## Dealing with concurrency
 
@@ -32,4 +29,12 @@ Notice again, we want to leverage concurrency here.  I.e. if there are $m$ possi
 
 Never the less, we want to design the algorithm so that concurrent attempts can occur without issue.  When we are doing `naive back tracking` we want to be able to provide a `max_attempts` param, so that we dont run for ever.  This would mean each potential process that runs would have to increment a counter.
 
-To do this properly with python, we will instantieat the `SudokuSolver` class, which will be responsible for storing these counters and such.  Essentially, almost all methods on the class will be static to maintain our functional approach (the `SudokuSolver` does not need to store the puzzle state, as we will be passing puzzles by value and not reference), but gives us a nice namespace for the what would otherwise be global variables.
+To do this properly with python, we will instantieat the `SudokuSolver` class, which will be responsible for storing these counters and such.  Essentially, almost all methods on the class will be static to maintain our functional approach, but gives us a nice namespace for the what would otherwise be global variables.
+
+It is also important to note that by default in Numpy, `ndarray`s are actually pointers to tensors on the heap, meaning, by default, everything is 'pass by reference'.  this is fine, becasue in many cases, this is more effeceint.  But we need to be careful when mutating.  We will need to explictly pass deep copies of the `ndarray` via `myNdarray.copy()`when we want to 'pass by value'
+
+## Things to imporve
+
+can we use rust to better optimze our code?  How can we build the objects we need ndarrays to make this work?
+
+rather than pass the puzzle everywhere, and to get the domains, calculate on the fly with the `get_domains()` method, we should consider passing a gamestate object that has its own copy mehtod. A gamestate would consist of $X$ and $D$ and have methods like `attempt_insert` and `compress` to condese the representation of the gamestate.  In this way, the `SudokuSolver` could keep a memory of gamestates it has already seen, and skip.
