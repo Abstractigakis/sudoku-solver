@@ -135,11 +135,13 @@ class SudokuSolver:
         self.naive_back_tracking_attempt_counter: int = max_attempts
 
     def naive_back_tracking_attempt(self, puzzle: ndarray):
-        print(self.naive_back_tracking_attempt_counter)
         if self.naive_back_tracking_attempt_counter <= 0:
             # give up, because the naive way is too long
             self.naive_back_tracking_attempt_counter = None
             raise Exception(f"Max attempts reached")
+
+        # attempting a gamestate
+        self.naive_back_tracking_attempt_counter -= 1
 
         # this is the naive part, attempt to fill the first blank tile we see
         first_blank_tile = self.get_first_blank(puzzle)
@@ -176,7 +178,9 @@ class SudokuSolver:
 
     def naive_back_tracking(self, max_attempts=10000):
         self.reset_naive_back_tracking_attempt_counter(max_attempts)
-        return self.naive_back_tracking_attempt(self.initial_puzzle)
+        solution = self.naive_back_tracking_attempt(self.initial_puzzle)
+        num_attempts = max_attempts - self.naive_back_tracking_attempt_counter
+        return solution, num_attempts
 
 
 if __name__ == '__main__':
