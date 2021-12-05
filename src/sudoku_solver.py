@@ -10,7 +10,7 @@ class SudokuSolver:
     """
 
     @staticmethod
-    def load_puzzle(path_to_puzzle) -> ndarray:
+    def load_puzzle(path_to_puzzle: str) -> ndarray:
         """initalizes object instacne with a filepath to sudoku problem
 
         Args:
@@ -21,13 +21,14 @@ class SudokuSolver:
         """
         return loadtxt(path_to_puzzle, dtype=int)
 
-    def __init__(self) -> None:
+    def __init__(self, path_to_puzzle) -> None:
         """initalizes object variabels that are needed.  Mostly counters that would have to be lobal otherwise.
 
         Args:
             path_to_puzzle (str): this file type must be .sd
         """
-        self.naive_back_tracking_attempt_counter: int = 10000
+        self.path_to_puzzle = path_to_puzzle
+        self.inital_puzzle = self.load_puzzle(path_to_puzzle)
 
     def __repr__(self) -> str:
         return str(self.puzzle)
@@ -108,6 +109,9 @@ class SudokuSolver:
         return fromfunction(
             lambda i, j, k: vfunc(puzzle, num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
 
+    def reset_naive_back_tracking_attempt_counter(self, max_attempts: int = 10000):
+        self.naive_back_tracking_attempt_counter: int = max_attempts
+
     def naive_back_tracking_attempt(self, puzzle: ndarray):
         self.naive_back_tracking_attempt_counter -= 1
         if self.naive_back_tracking_attempt_counter <= 0:
@@ -119,8 +123,8 @@ class SudokuSolver:
         if(not var):
             return True
 
-    def naive_back_tracking(self, max_retries=10000):
-        self.naive_back_tracking_attempt_counter = max_retries
+    def naive_back_tracking(self, max_attempts=10000):
+        self.reset_naive_back_tracking_attempt_counter(max_attempts)
         return self.naive_back_tracking_attempt(self.inital_puzzle)
 
 
