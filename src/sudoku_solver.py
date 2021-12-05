@@ -1,4 +1,4 @@
-from numpy import int8, loadtxt, ndarray, vectorize, void, where, fromfunction
+from numpy import loadtxt, ndarray, vectorize, void, where, fromfunction
 from typing import Union
 
 
@@ -28,7 +28,7 @@ class SudokuSolver:
             path_to_puzzle (str): this file type must be .sd
         """
         self.path_to_puzzle = path_to_puzzle
-        self.inital_puzzle = self.load_puzzle(path_to_puzzle)
+        self.initial_puzzle = self.load_puzzle(path_to_puzzle)
 
     def __repr__(self) -> str:
         return str(self.puzzle)
@@ -39,11 +39,17 @@ class SudokuSolver:
         """
 
     @staticmethod
+    def assert_num_is_valid(num: int):
+        assert num < 10 and num > 0
+
+    @staticmethod
     def is_num_in_row(puzzle: ndarray, num: int, row: int) -> bool:
+        __class__.assert_num_is_valid(num)
         return num in puzzle[row]
 
     @staticmethod
     def is_num_in_col(puzzle: ndarray, num: int, col: int) -> bool:
+        __class__.assert_num_is_valid(num)
         return num in puzzle[:, col]
 
     @staticmethod
@@ -65,6 +71,7 @@ class SudokuSolver:
 
     @staticmethod
     def is_num_in_section(puzzle: ndarray, num: int, row: int, col: int) -> bool:
+        __class__.assert_num_is_valid(num)
         return num in __class__.get_section(puzzle, row, col)
 
     @staticmethod
@@ -95,7 +102,7 @@ class SudokuSolver:
         return blanks[0][0], blanks[1][0]
 
     @staticmethod
-    def domain(puzzle: ndarray) -> void:
+    def get_domains(puzzle: ndarray) -> ndarray:
         """set the domain property for the current puzzle state, which is a 3d boolean tensor where
         each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
         """
@@ -103,11 +110,13 @@ class SudokuSolver:
         # DEV NOTE: numpy's from function creates 3, 3d tensors i, j, k. the
         #  is_safe_to_insert method, is only meant to work for one entry, not
         #  to handle the full tensors.  We also dont want to iterate beacuse
-        #  its slow.  So use vecttorize
+        #  its slow.  So use vecttorize.
+        #
+        #  NOTE we dont want to vectorize the puzzle.
 
-        vfunc = vectorize(__class__.is_safe_to_insert)
+        vfunc = vectorize(__class__.is_safe_to_insert, excluded={"puzzle"})
         return fromfunction(
-            lambda i, j, k: vfunc(puzzle, num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
+            lambda i, j, k: vfunc(puzzle=puzzle, num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
 
     def reset_naive_back_tracking_attempt_counter(self, max_attempts: int = 10000):
         self.naive_back_tracking_attempt_counter: int = max_attempts
@@ -117,7 +126,7 @@ class SudokuSolver:
             # give up, because the naive way is too long
             self.naive_back_tracking_attempt_counter = None
             return False
-        
+
         self.naive_back_tracking_attempt_counter -= 1
 
         first_blank_tile = self.get_first_blank(puzzle)
@@ -127,7 +136,7 @@ class SudokuSolver:
 
     def naive_back_tracking(self, max_attempts=10000):
         self.reset_naive_back_tracking_attempt_counter(max_attempts)
-        return self.naive_back_tracking_attempt(self.inital_puzzle)
+        return self.naive_back_tracking_attempt(self.initial_puzzle)
 
 
 if __name__ == "__main__":
