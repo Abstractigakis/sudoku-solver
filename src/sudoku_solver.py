@@ -1,4 +1,4 @@
-from numpy import loadtxt, ndarray, void, where, fromfunction
+from numpy import loadtxt, ndarray, vectorize, void, where, fromfunction
 from typing import Union
 
 
@@ -72,8 +72,15 @@ class SudokuSolver:
         """set the domains property for the current puzzle state, which is a 3d boolean tensor where
         each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
         """
+
+        # DEV NOTE: numpy's from function creates 3, 3d tensors i, j, k. the
+        #  is_safe_to_insert method, is only meant to work for one entry, not
+        #  to handle the full tensors.  We also dont want to iterate beacuse
+        #  its slow.  So use vecttorize
+
+        vfunc = vectorize(self.is_safe_to_insert)
         return fromfunction(
-            lambda i, j, k: self.is_safe_to_insert(k, i, j), (9, 9, 9), dtype=int)
+            lambda i, j, k: vfunc(num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
 
 
 if __name__ == "__main__":
