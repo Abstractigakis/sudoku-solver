@@ -47,15 +47,15 @@ class TestSudokuSolver(TestCase):
         assert self.empty.get_first_blank() == (0, 0)
 
     def test_get_domains(self):
-        actual = self.empty.get_domains()
+        actual = self.empty.domain
         expected = np.full((9, 9, 9), True)
         self.assertTrue((actual == expected).all())
 
-        self.assertFalse(self.ones.get_domains()[0][0][0])
-        self.assertTrue(self.ones.get_domains()[0][0][1])
+        self.assertFalse(self.ones.domain[0][0][0])
+        self.assertTrue(self.ones.domain[0][0][1])
 
         # row 0 is complete, so no numbers should be valid in row = 0 col[0:8]
-        row_1_domain_plane = self.row_one_done.get_domains()[0, :, :]
+        row_1_domain_plane = self.row_one_done.domain[0, :, :]
         all_false = (row_1_domain_plane == False).all()
         self.assertTrue(all_false)
 

@@ -68,8 +68,9 @@ class SudokuSolver:
             return False
         return blanks[0][0], blanks[1][0]
 
-    def get_domains(self) -> void:
-        """set the domains property for the current puzzle state, which is a 3d boolean tensor where
+    @property
+    def domain(self) -> void:
+        """set the domain property for the current puzzle state, which is a 3d boolean tensor where
         each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
         """
 
@@ -85,4 +86,4 @@ class SudokuSolver:
 
 if __name__ == "__main__":
     sps = SudokuSolver("../sudoku_problems/44/1.sd")
-    print(sps.get_domains())
+    print(sps.domain)
