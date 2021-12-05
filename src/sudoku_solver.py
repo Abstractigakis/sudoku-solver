@@ -113,15 +113,17 @@ class SudokuSolver:
         self.naive_back_tracking_attempt_counter: int = max_attempts
 
     def naive_back_tracking_attempt(self, puzzle: ndarray):
-        self.naive_back_tracking_attempt_counter -= 1
         if self.naive_back_tracking_attempt_counter <= 0:
             # give up, because the naive way is too long
             self.naive_back_tracking_attempt_counter = None
             return False
+        
+        self.naive_back_tracking_attempt_counter -= 1
 
         first_blank_tile = self.get_first_blank(puzzle)
-        if(not var):
+        if(not first_blank_tile):
             return True
+        return False
 
     def naive_back_tracking(self, max_attempts=10000):
         self.reset_naive_back_tracking_attempt_counter(max_attempts)
