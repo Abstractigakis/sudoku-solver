@@ -137,8 +137,3 @@ class SudokuSolver:
     def naive_back_tracking(self, max_attempts=10000):
         self.reset_naive_back_tracking_attempt_counter(max_attempts)
         return self.naive_back_tracking_attempt(self.initial_puzzle)
-
-
-if __name__ == "__main__":
-    sps = SudokuSolver("../sudoku_problems/44/1.sd")
-    print(sps.domain)
