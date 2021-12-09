@@ -3,7 +3,6 @@ from unittest import TestCase, main
 
 import numpy as np
 from src.sudoku_solver import SudokuSolver
-from src.sudoku_game_state import SudokuGameState
 
 
 class TestSudokuSolver(TestCase):
