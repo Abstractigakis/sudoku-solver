@@ -1,8 +1,7 @@
-from numpy import loadtxt, ndarray, where
-from typing import Union
+from numpy import loadtxt, ndarray
 
-from .exceptions import ImpossiblePuzzle, MaxAtteptsReached
-from .sudoku_game_state import SudokuGameState
+from exceptions import ImpossiblePuzzle, InvalidSudokuGameState, MaxAtteptsReached, NoBlanks
+from sudoku_game_state import SudokuGameState
 
 
 class SudokuSolver:
@@ -63,7 +62,7 @@ class SudokuSolver:
 #######################################################################################################
 # naive backtracking
 #######################################################################################################
-    def naive_back_tracking_attempt(self, puzzle: ndarray):
+    def naive_back_tracking_attempt(self, puzzle: SudokuGameState):
         if self.naive_back_tracking_attempt_counter <= 0:
             # give up, because the naive way is too long
             raise MaxAtteptsReached(f"Max attempts reached")
@@ -71,29 +70,27 @@ class SudokuSolver:
         # attempting a gamestate
         self.naive_back_tracking_attempt_counter -= 1
 
-        # this is the naive part, attempt to fill the first blank tile we see
-        first_blank_tile = self.get_first_blank(puzzle)
-        if(not first_blank_tile):
+        try:
+            x, y = puzzle.get_first_blank()
+            for k in range(1, 10):
+                try:
+                    # the case where next_puzzle is computed, meaning that it is
+                    # possible to insert k into X[i][j], so we should try this
+                    # and recursivly call backtracking on it
+                    result_puzzle = self.naive_back_tracking_attempt(
+                        puzzle=puzzle.next_state(num=k, row=x, col=y))
+                except InvalidSudokuGameState:
+                    pass
+
+        except NoBlanks:
             # nothing is blank, puzzle solved!
             return puzzle
 
-        x, y = first_blank_tile
-        for k in range(1, 10):
-            next_puzzle = __class__.attempt_insert_num(
-                puzzle=puzzle, num=k, row=x, col=y)[0]
-
-            if isinstance(next_puzzle, ndarray):
-                # the case where next_puzzle is computed, meaning that it is
-                # possible to insert k into X[i][j], so we should try this
-                # and recursivly call backtracking on it
-                result_puzzle = self.naive_back_tracking_attempt(
-                    puzzle=next_puzzle)
-
-                # continue back tracking, if eventually we reach contradiction,
-                if isinstance(result_puzzle, ndarray):
-                    # the case where the result puzzle was completed!
-                    #  return the puzzle as the final solution
-                    return result_puzzle
+            # continue back tracking, if eventually we reach contradiction,
+            if isinstance(result_puzzle, ndarray):
+                # the case where the result puzzle was completed!
+                #  return the puzzle as the final solution
+                return result_puzzle
 
                 # this k caused a issue, either it can't be inserted, or
                 # it can be inserted, but caused a deeper issue that could
@@ -184,6 +181,6 @@ class SudokuSolver:
 
 
 if __name__ == '__main__':
-    SS = SudokuSolver("../test_sudoku_problems/a.sd")
+    SS = SudokuSolver("../test_sudoku_problems/example_a.sd")
     res = SS.naive_back_tracking()
     print(res)

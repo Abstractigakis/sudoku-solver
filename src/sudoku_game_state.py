@@ -1,5 +1,7 @@
 from typing import Union
-from numpy import ndarray, vectorize, where, fromfunction
+from numpy import ndarray, vectorize, where, fromfunction, copy as npcopy
+
+from exceptions import InvalidSudokuGameState, NoBlanks
 
 
 class SudokuGameState:
@@ -41,7 +43,7 @@ class SudokuGameState:
         """
         blanks = self.get_all_indicies_that_are_num(0)
         if len(blanks[0]) == 0:
-            return False
+            raise NoBlanks
         return blanks[0][0], blanks[1][0]
 
     @staticmethod
@@ -109,3 +111,13 @@ class SudokuGameState:
         vfunc = vectorize(self.is_safe_to_insert, excluded={"puzzle"})
         return fromfunction(
             lambda i, j, k: vfunc(num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
+
+#######################################################################################################
+# next state generators
+#######################################################################################################
+    def next_state(self, num: int, row: int, col: int) -> ndarray:
+        if self.is_safe_to_insert(num, row, col):
+            next_puzzle = npcopy(self.puzzle)
+            next_puzzle[row][col] = num
+            return SudokuGameState(next_puzzle)
+        raise InvalidSudokuGameState
