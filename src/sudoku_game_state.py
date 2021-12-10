@@ -23,6 +23,9 @@ class SudokuGameState:
     def __str__(self) -> str:
         return f"puzzle:\n{self.puzzle}"""
 
+    def __eq__(self, other):
+        return (self.puzzle == other.puzzle).all()
+
     #######################################################################################################
     # get indicies
     #######################################################################################################
@@ -88,3 +91,6 @@ class SudokuGameState:
     def next_game_state(self, num: int, row: int, col: int):
         if not self.is_safe_to_insert(num, row, col):
             raise InvalidSudokuGameState
+        new_puzzle = self.puzzle.copy()
+        new_puzzle[row][col] = num
+        return SudokuGameState(new_puzzle)

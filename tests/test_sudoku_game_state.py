@@ -2,7 +2,7 @@
 
 from numpy import ndarray, array, full
 from pytest import raises
-from src.exceptions import NoBlanks
+from src.exceptions import InvalidSudokuGameState, NoBlanks
 from src.sudoku_game_state import SudokuGameState
 
 EMPTY = SudokuGameState.load_game_state_from_sd_file(
@@ -70,3 +70,13 @@ def test_get_domains():
     assert ONES.get_domains()[0][0][1] == True
     row_1_domain_plane = ROW_ONE_DONE.get_domains()[0, :, :]
     assert (row_1_domain_plane == False).all() == True
+
+
+def test_next_game_state():
+    puzzle = full((9, 9), 0)
+    puzzle[0][0] = 1
+    one_in_top_right = SudokuGameState(puzzle)
+
+    assert EMPTY.next_game_state(1, 0, 0) == one_in_top_right
+    with raises(InvalidSudokuGameState):
+        one_in_top_right.next_game_state(1, 0, 2)
