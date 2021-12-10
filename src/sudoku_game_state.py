@@ -1,4 +1,4 @@
-from numpy import ndarray, loadtxt, argwhere
+from numpy import ndarray, loadtxt, argwhere, vectorize, fromfunction
 from src.exceptions import InvalidSudokuGameState, NoBlanks
 
 
@@ -62,6 +62,29 @@ class SudokuGameState:
             and not self.is_num_in_col(num, col) \
             and not self.is_num_in_section(num, row, col)
 
+    #######################################################################################################
+    # domains and information
+    #######################################################################################################
+
+    def get_domains(self) -> ndarray:
+        """set the domain property for the current puzzle state, which is a 3d boolean tensor where
+        each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
+        """
+
+        # DEV NOTE: numpy's from function creates 3, 3d tensors i, j, k. the
+        #  is_safe_to_insert method, is only meant to work for one entry, not
+        #  to handle the full tensors.  We also dont want to iterate beacuse
+        #  its slow.  So use vecttorize.
+        #
+        #  NOTE we dont want to vectorize the puzzle.
+
+        vfunc = vectorize(self.is_safe_to_insert, excluded={"puzzle"})
+        return fromfunction(
+            lambda i, j, k: vfunc(num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
+
+    #######################################################################################################
+    # domains and information
+    #######################################################################################################
     def next_game_state(self, num: int, row: int, col: int):
         if not self.is_safe_to_insert(num, row, col):
             raise InvalidSudokuGameState

@@ -1,6 +1,6 @@
 
 
-from numpy import ndarray, array
+from numpy import ndarray, array, full
 from pytest import raises
 from src.exceptions import NoBlanks
 from src.sudoku_game_state import SudokuGameState
@@ -57,9 +57,16 @@ def test_get_section():
 
 
 def test_get_first_blank():
-    print(ROW_ONE_DONE)
     assert (EXAMPLE.get_first_blank() == array([0, 1])).all()
     assert (EMPTY.get_first_blank() == array([0, 0])).all()
     assert (ROW_ONE_DONE.get_first_blank() == array([1, 4])).all()
     with raises(NoBlanks):
         ONES.get_first_blank()
+
+
+def test_get_domains():
+    assert (EMPTY.get_domains() == full((9, 9, 9), True)).all()
+    assert ONES.get_domains()[0][0][0] == False
+    assert ONES.get_domains()[0][0][1] == True
+    row_1_domain_plane = ROW_ONE_DONE.get_domains()[0, :, :]
+    assert (row_1_domain_plane == False).all() == True
