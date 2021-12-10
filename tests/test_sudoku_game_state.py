@@ -14,7 +14,7 @@ EXAMPLE = SudokuGameState.load_game_state_from_sd_file(
 ONES = SudokuGameState.load_game_state_from_sd_file(
     "./tests/sudoku_test_problems/ones.sd")
 
-ROW_ONE_DONE = SudokuGameState(
+ROW_ONE_DONE = SudokuGameState.load_game_state_from_sd_file(
     "./tests/sudoku_test_problems/row_one_done.sd")
 
 
@@ -57,8 +57,9 @@ def test_get_section():
 
 
 def test_get_first_blank():
-    assert EXAMPLE.get_first_blank() == (0, 1)
-    assert EMPTY.get_first_blank() == (0, 0)
-    assert ROW_ONE_DONE.get_first_blank() == (1, 4)
+    print(ROW_ONE_DONE)
+    assert (EXAMPLE.get_first_blank() == array([0, 1])).all()
+    assert (EMPTY.get_first_blank() == array([0, 0])).all()
+    assert (ROW_ONE_DONE.get_first_blank() == array([1, 4])).all()
     with raises(NoBlanks):
         ONES.get_first_blank()

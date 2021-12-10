@@ -1,4 +1,4 @@
-from numpy import ndarray, loadtxt, where
+from numpy import ndarray, loadtxt, argwhere
 from src.exceptions import InvalidSudokuGameState, NoBlanks
 
 
@@ -28,13 +28,13 @@ class SudokuGameState:
     #######################################################################################################
 
     def get_all_indicies_that_are_num(self, num: int) -> tuple:
-        return where(self.puzzle == num)
+        return argwhere(self.puzzle == num)
 
     def get_first_blank(self) -> tuple[int, int]:
         blanks = self.get_all_indicies_that_are_num(0)
-        if len(blanks[0]) == 0:
+        if len(blanks) == 0:
             raise NoBlanks
-        return blanks[0][0], blanks[1][0]
+        return blanks[0]
 
     @staticmethod
     def get_section_corner(row: int, col: int) -> tuple[int, int]:
