@@ -14,7 +14,7 @@ class SudokuGameState:
     #######################################################################################################
     # dunders
     #######################################################################################################
-    def __init__(self, puzzle: ndarray) -> None:
+    def __init__(self, puzzle: ndarray):
         self.puzzle: ndarray = puzzle
 
     def __repr__(self) -> str:

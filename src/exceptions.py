@@ -16,3 +16,8 @@ class InvalidSudokuGameState(Exception):
 class NoBlanks(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
+
+
+class PuzzleUnsolvable(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
