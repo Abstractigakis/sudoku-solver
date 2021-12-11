@@ -50,7 +50,13 @@ class SudokuSolver:
         self.increment_naive_back_tracking_attempt_number(max_attempts)
 
         # will raise NoBlanks if puzzle is solved!
-        row, col = game_state.get_first_blank()
+        try:
+            row, col = game_state.get_first_blank()
+        except NoBlanks:
+            # by design, if we give puzzle from the state that is valid,
+            # and we reach this section of the code, then we know the puzzle
+            # is solved, but really, we should check if the puzzle is valid
+            return game_state
 
         for num in range(1, 10):
             # the case where next_puzzle is computed, meaning that it is
@@ -58,7 +64,10 @@ class SudokuSolver:
             # and recursivly call backtracking on it
             try:
                 next_game_state = game_state.next_game_state(num, row, col)
-                self.naive_back_tracking_attempt(next_game_state, max_attempts)
+                reuslt_game_state = self.naive_back_tracking_attempt(
+                    next_game_state, max_attempts)
+                if isinstance(reuslt_game_state, SudokuGameState):
+                    return reuslt_game_state
 
             except NoBlanks:
                 # by design, if we give puzzle from the state that is valid,
@@ -69,8 +78,13 @@ class SudokuSolver:
             except InvalidSudokuGameState:
                 # if the result puzzle is in valid, move on and try num+1
                 pass
+            except PuzzleUnsolvable:
+                # if our current puzzle is unsolvable, but we have more to
+                # numbers to chekc continue
+                pass
 
-        # we checked all the numbers for a section, and they did not fit
+        # we checked all the numbers for a given spot, and they did not fit
+        # for the puzzle, so need to raise puzzle unsolved
         raise PuzzleUnsolvable
 
     def naive_back_tracking(self, max_attempts: int = 10000) -> tuple[SudokuGameState, int]:
@@ -94,7 +108,13 @@ class SudokuSolver:
             max_attempts)
 
         # will raise NoBlanks if puzzle is solved!
-        row, col = game_state.get_first_blank()
+        try:
+            row, col = game_state.get_first_blank()
+        except NoBlanks:
+            # by design, if we give puzzle from the state that is valid,
+            # and we reach this section of the code, then we know the puzzle
+            # is solved, but really, we should check if the puzzle is valid
+            return game_state
 
         for num in range(1, 10):
             # the case where next_puzzle is computed, meaning that it is
@@ -102,7 +122,10 @@ class SudokuSolver:
             # and recursivly call backtracking on it
             try:
                 next_game_state = game_state.next_game_state(num, row, col)
-                self.naive_back_tracking_attempt(next_game_state, max_attempts)
+                reuslt_game_state = self.back_tracking_with_forward_checking_attempt(
+                    next_game_state, max_attempts)
+                if isinstance(reuslt_game_state, SudokuGameState):
+                    return reuslt_game_state
 
             except NoBlanks:
                 # by design, if we give puzzle from the state that is valid,
@@ -113,6 +136,14 @@ class SudokuSolver:
             except InvalidSudokuGameState:
                 # if the result puzzle is in valid, move on and try num+1
                 pass
+            except PuzzleUnsolvable:
+                # if our current puzzle is unsolvable, but we have more to
+                # numbers to chekc continue
+                pass
+
+        # we checked all the numbers for a given spot, and they did not fit
+        # for the puzzle, so need to raise puzzle unsolved
+        raise PuzzleUnsolvable
 
     def back_tracking_with_forward_checking(self, max_attempts: int = 10000) -> tuple[SudokuGameState, int]:
         self.reset_back_tracking_with_forward_checking_attempt_number()

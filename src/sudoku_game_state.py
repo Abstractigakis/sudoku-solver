@@ -16,6 +16,7 @@ class SudokuGameState:
     #######################################################################################################
     def __init__(self, puzzle: ndarray):
         self.puzzle: ndarray = puzzle
+        self.set_domains()
 
     def __repr__(self) -> str:
         return str(self)
@@ -69,7 +70,7 @@ class SudokuGameState:
     # domains and information
     #######################################################################################################
 
-    def get_domains(self) -> ndarray:
+    def set_domains(self) -> ndarray:
         """set the domain property for the current puzzle state, which is a 3d boolean tensor where
         each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
         """
@@ -82,12 +83,18 @@ class SudokuGameState:
         #  NOTE we dont want to vectorize the puzzle.
 
         vfunc = vectorize(self.is_safe_to_insert, excluded={"puzzle"})
-        return fromfunction(
+        self.domains = fromfunction(
             lambda i, j, k: vfunc(num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
 
     #######################################################################################################
-    # domains and information
+    # check if game state is valid
     #######################################################################################################
+    def is_square_impossible(self, row: int, col: int) -> bool:
+        return (self.domains[row][col] == False).all() and self.puzzle[row][col] == 0
+
+    def is_viable(self) -> bool:
+        return self.puzzle
+
     def next_game_state(self, num: int, row: int, col: int):
         if not self.is_safe_to_insert(num, row, col):
             raise InvalidSudokuGameState

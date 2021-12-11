@@ -18,6 +18,10 @@ ROW_ONE_DONE = SudokuGameState.load_game_state_from_sd_file(
     "./tests/sudoku_test_problems/row_one_done.sd")
 
 
+IMPOSSIBLE = SudokuGameState.load_game_state_from_sd_file(
+    "./tests/sudoku_test_problems/impossible.sd")
+
+
 def test_load_sudoku_game_state():
     EMPTY = SudokuGameState.load_game_state_from_sd_file(
         "./tests/sudoku_test_problems/empty.sd")
@@ -64,11 +68,11 @@ def test_get_first_blank():
         ONES.get_first_blank()
 
 
-def test_get_domains():
-    assert (EMPTY.get_domains() == full((9, 9, 9), True)).all()
-    assert ONES.get_domains()[0][0][0] == False
-    assert ONES.get_domains()[0][0][1] == True
-    row_1_domain_plane = ROW_ONE_DONE.get_domains()[0, :, :]
+def test_domains():
+    assert (EMPTY.domains == full((9, 9, 9), True)).all()
+    assert ONES.domains[0][0][0] == False
+    assert ONES.domains[0][0][1] == True
+    row_1_domain_plane = ROW_ONE_DONE.domains[0, :, :]
     assert (row_1_domain_plane == False).all() == True
 
 
@@ -80,3 +84,16 @@ def test_next_game_state():
     assert EMPTY.next_game_state(1, 0, 0) == one_in_top_right
     with raises(InvalidSudokuGameState):
         one_in_top_right.next_game_state(1, 0, 2)
+
+
+def test_is_square_impossible():
+    for i in range(9):
+        for j in range(9):
+            # everything is possible on an empty board
+            assert EMPTY.is_square_impossible(i, j) == False
+
+    for i in range(9):
+        # noting is impossible when numbers are already there
+        assert ROW_ONE_DONE.is_square_impossible(i, 1) == False
+
+    assert IMPOSSIBLE.is_square_impossible(0, 0) == True
