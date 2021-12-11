@@ -10,7 +10,7 @@ class SudokuSolver:
     # loaders
     #######################################################################################################
     @staticmethod
-    def load_puzzle(path_to_puzzle: str) -> ndarray:
+    def load_game_state_from_sd_file(path_to_puzzle: str) -> ndarray:
         return loadtxt(path_to_puzzle, dtype=int)
 
     #######################################################################################################
@@ -33,7 +33,7 @@ class SudokuSolver:
     def new_puzzle(self, path_to_puzzle: str):
         self.path_to_puzzle = path_to_puzzle
         self.intial_game_state: SudokuGameState = SudokuGameState(
-            __class__.load_puzzle(path_to_puzzle))
+            __class__.load_game_state_from_sd_file(path_to_puzzle))
 
     #######################################################################################################
     # naive backtracking
@@ -122,10 +122,11 @@ class SudokuSolver:
             # and recursivly call backtracking on it
             try:
                 next_game_state = game_state.next_game_state(num, row, col)
-                reuslt_game_state = self.back_tracking_with_forward_checking_attempt(
-                    next_game_state, max_attempts)
-                if isinstance(reuslt_game_state, SudokuGameState):
-                    return reuslt_game_state
+                if next_game_state.is_impossible:
+                    reuslt_game_state = self.back_tracking_with_forward_checking_attempt(
+                        next_game_state, max_attempts)
+                    if isinstance(reuslt_game_state, SudokuGameState):
+                        return reuslt_game_state
 
             except NoBlanks:
                 # by design, if we give puzzle from the state that is valid,

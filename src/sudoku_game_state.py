@@ -1,4 +1,5 @@
-from numpy import ndarray, loadtxt, argwhere, vectorize, fromfunction
+from typing import Union
+from numpy import ndarray, loadtxt, argwhere, vectorize, fromfunction, count_nonzero
 from src.exceptions import InvalidSudokuGameState, NoBlanks
 
 
@@ -16,7 +17,6 @@ class SudokuGameState:
     #######################################################################################################
     def __init__(self, puzzle: ndarray):
         self.puzzle: ndarray = puzzle
-        self.set_domains()
 
     def __repr__(self) -> str:
         return str(self)
@@ -67,10 +67,9 @@ class SudokuGameState:
             and not self.is_num_in_section(num, row, col)
 
     #######################################################################################################
-    # domains and information
+    # information
     #######################################################################################################
-
-    def set_domains(self) -> ndarray:
+    def calc_domains(self) -> ndarray:
         """set the domain property for the current puzzle state, which is a 3d boolean tensor where
         each i,j,k entry is true, if the number k-1 can be inserted into square i, j in the puzzle
         """
@@ -82,18 +81,29 @@ class SudokuGameState:
         #
         #  NOTE we dont want to vectorize the puzzle.
 
-        vfunc = vectorize(self.is_safe_to_insert, excluded={"puzzle"})
-        self.domains = fromfunction(
+        # this can be called on each game state on creation, but this is an
+        # expensive operation.  better to only use domains ad-hoc
+
+        vfunc = vectorize(self.is_safe_to_insert)
+        return fromfunction(
             lambda i, j, k: vfunc(num=k+1, row=i, col=j), (9, 9, 9), dtype=int)
 
-    #######################################################################################################
-    # check if game state is valid
-    #######################################################################################################
-    def is_square_impossible(self, row: int, col: int) -> bool:
-        return (self.domains[row][col] == False).all() and self.puzzle[row][col] == 0
+    def use_domains(self, domains: ndarray):
+        return domains if isinstance(domains, ndarray) else self.calc_domains()
 
-    def is_viable(self) -> bool:
-        return self.puzzle
+    def is_square_impossible(self, row: int, col: int, domains: ndarray = None) -> bool:
+        domains = self.use_domains(domains)
+        return (domains[row][col] == False).all() and self.puzzle[row][col] == 0
+
+    def is_game_state_impossible(self, domains: ndarray = None) -> bool:
+        domains = self.use_domains(domains)
+        vfunc = vectorize(self.is_square_impossible, excluded={"domains"})
+        return (fromfunction(
+            lambda i, j: vfunc(domains=domains, row=i, col=j), (9, 9), dtype=int) == True).any()
+
+    def how_many_possibilites(self, row: int, col: int, domains: ndarray = None):
+        domains = self.use_domains(domains)
+        return count_nonzero(domains[row][col])
 
     def next_game_state(self, num: int, row: int, col: int):
         if not self.is_safe_to_insert(num, row, col):

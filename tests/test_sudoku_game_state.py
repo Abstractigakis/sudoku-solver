@@ -69,10 +69,10 @@ def test_get_first_blank():
 
 
 def test_domains():
-    assert (EMPTY.domains == full((9, 9, 9), True)).all()
-    assert ONES.domains[0][0][0] == False
-    assert ONES.domains[0][0][1] == True
-    row_1_domain_plane = ROW_ONE_DONE.domains[0, :, :]
+    assert (EMPTY.calc_domains() == full((9, 9, 9), True)).all()
+    assert ONES.calc_domains()[0][0][0] == False
+    assert ONES.calc_domains()[0][0][1] == True
+    row_1_domain_plane = ROW_ONE_DONE.calc_domains()[0, :, :]
     assert (row_1_domain_plane == False).all() == True
 
 
@@ -91,9 +91,11 @@ def test_is_square_impossible():
         for j in range(9):
             # everything is possible on an empty board
             assert EMPTY.is_square_impossible(i, j) == False
-
     for i in range(9):
         # noting is impossible when numbers are already there
         assert ROW_ONE_DONE.is_square_impossible(i, 1) == False
-
     assert IMPOSSIBLE.is_square_impossible(0, 0) == True
+
+
+def test_is_game_state_impossible():
+    assert IMPOSSIBLE.is_game_state_impossible() == True
