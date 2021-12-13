@@ -132,15 +132,28 @@ class SudokuSolver:
         if use_domains:
             self.remove_D(num, row, col)
 
+    def get_least_constraining_blank(self) -> tuple[int, int]:
+        best, res_i, res_j = 0, 0, 9
+        for i in range(9):
+            for j in range(9):
+                size = 0
+                for k in range(9):
+                    if(self.D[i][j][k] == True):
+                        size += 1
+                if(size < best):
+                    res_i, res_j = i, j
+        return res_i, res_j
+
     #######################################################################################################
     # the backtrcking algorithm
     #######################################################################################################
 
-    def back_tracking_attempt(self, forward_checking: bool = False) -> ndarray:
+    def back_tracking_attempt(self, forward_checking: bool = False, least_constraining: bool = False) -> ndarray:
         self.increment_attempt()
 
         try:
-            row, col = self.get_first_blank()  # will raise NoBlanks if puzzle is solved!
+            # will raise NoBlanks if puzzle is solved!
+            row, col = self.get_first_blank()
         except NoBlanks:
             # by design, if we give puzzle from the state that is valid,
             # and we reach this section of the code, then we know the puzzle
@@ -155,7 +168,8 @@ class SudokuSolver:
             # and recursivly call backtracking on it
             try:
                 self.insert(num, row, col, forward_checking)
-                res = self.back_tracking_attempt(forward_checking)
+                res = self.back_tracking_attempt(
+                    forward_checking, least_constraining)
                 if isinstance(res, ndarray):
                     return res
 
