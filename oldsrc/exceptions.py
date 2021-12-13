@@ -21,18 +21,3 @@ class NoBlanks(Exception):
 class PuzzleUnsolvable(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
-
-
-class NotSudokuFile(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
-
-class InvalidInsert(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
-
-class CantRemoveFromBlank(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)

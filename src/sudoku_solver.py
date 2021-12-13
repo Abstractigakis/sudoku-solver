@@ -1,186 +1,197 @@
-from numpy import loadtxt, ndarray
+from numpy import ndarray, loadtxt, argwhere
 
-from exceptions import ImpossiblePuzzle, InvalidSudokuGameState, MaxAtteptsReached, NoBlanks
-from sudoku_game_state import SudokuGameState
+from numpy.core.numeric import full
+from src.exceptions import InvalidInsert, MaxAtteptsReached, NoBlanks, PuzzleUnsolvable, NotSudokuFile, CantRemoveFromBlank
+from src.enums import BackTrackingHeuristics
 
 
 class SudokuSolver:
-    """Loads a numpy representation of a sudoku puzzle, and has methods that can be solve via the backtrace A algorithm with some optimizations
 
-    mostly a name space with static methods, but also some variable state for what
-    would otherwise be global couters
-    """
-
-#######################################################################################################
-# loaders
-#######################################################################################################
+    #######################################################################################################
+    # loaders
+    #######################################################################################################
     @staticmethod
-    def load_puzzle(path_to_puzzle: str) -> ndarray:
-        """initalizes object instacne with a filepath to sudoku problem
-
-        Args:
-            path_to_puzzle (str): this file type must be .sd
-
-        Returns:
-            ndarray: 9x9 sudoku puzzlepuzzle
-        """
+    def load_game_state_from_sd_file(path_to_puzzle: str) -> ndarray:
+        if path_to_puzzle[-3:] != ".sd":
+            raise NotSudokuFile(path_to_puzzle)
         return loadtxt(path_to_puzzle, dtype=int)
 
-
-#######################################################################################################
-# dunders
-#######################################################################################################
-
-    def __init__(self, path_to_puzzle) -> None:
-        """initalizes object variabels that are needed.  Mostly counters that would have to be lobal otherwise.
-
-        Args:
-            path_to_puzzle (str): this file type must be .sd
-        """
-        self.new_puzzle(path_to_puzzle)
-
-    def __repr__(self) -> str:
-        return str(self)
-
-    def __str__(self) -> str:
-        return str(self.initial_puzzle)
-
-#######################################################################################################
-# variable setters an resetters
-#######################################################################################################
-    def new_puzzle(self, path_to_puzzle: str):
+    #######################################################################################################
+    # dunders
+    #######################################################################################################
+    def __init__(self, path_to_puzzle: str, max_attempts: int = 10000) -> None:
         self.path_to_puzzle = path_to_puzzle
-        self.initial_puzzle: SudokuGameState = SudokuGameState(
-            self.load_puzzle(path_to_puzzle))
+        self.X: ndarray = __class__.load_game_state_from_sd_file(
+            path_to_puzzle)
+        self.calc_D()
+        self.attempt = 0
+        self.max_attempts = max_attempts
 
-    def reset_naive_back_tracking_attempt_counter(self, max_attempts: int):
-        self.naive_back_tracking_attempt_counter: int = max_attempts
+    #######################################################################################################
+    # setters
+    #######################################################################################################
+    def increment_attempt(self) -> None:
+        self.attempt += 1
+        if self.attempt == self.max_attempts:
+            raise MaxAtteptsReached(self.max_attempts)
 
-    def reset_back_tracking_with_forward_checking_couter(self, max_attempts: int):
-        self.back_tracking_with_forward_checking_couter = max_attempts
+    #######################################################################################################
+    # get indicies
+    #######################################################################################################
 
-#######################################################################################################
-# naive backtracking
-#######################################################################################################
-    def naive_back_tracking_attempt(self, puzzle: SudokuGameState):
-        if self.naive_back_tracking_attempt_counter <= 0:
-            # give up, because the naive way is too long
-            raise MaxAtteptsReached(f"Max attempts reached")
+    def get_all_indicies_that_are_num(self, num: int) -> tuple:
+        return argwhere(self.X == num)
 
-        # attempting a gamestate
-        self.naive_back_tracking_attempt_counter -= 1
+    def get_first_blank(self) -> tuple[int, int]:
+        blanks = self.get_all_indicies_that_are_num(0)
+        if len(blanks) == 0:
+            raise NoBlanks
+        return blanks[0]
+
+    @staticmethod
+    def get_section_corner_coordinates(row: int, col: int) -> tuple[int, int]:
+        return row - row % 3, col - col % 3
+
+    def get_section(self, row: int, col: int) -> ndarray:
+        i, j = __class__.get_section_corner_coordinates(row, col)
+        return self.X[i:i+3, j:j+3]
+
+    #######################################################################################################
+    # check valid moves
+    #######################################################################################################
+
+    def is_num_in_row(self, num: int, row: int) -> bool:
+        return num in self.X[row]
+
+    def is_num_in_col(self, num: int, col: int) -> bool:
+        return num in self.X[:, col]
+
+    def is_num_in_section(self, num: int, row: int, col: int) -> bool:
+        return num in self.get_section(row, col)
+
+    def is_safe_to_insert(self, num: int, row: int, col: int) -> bool:
+        return not self.is_num_in_row(num, row) \
+            and not self.is_num_in_col(num, col) \
+            and not self.is_num_in_section(num, row, col)
+
+    #######################################################################################################
+    # calculations
+    #######################################################################################################
+    def calc_D(self) -> None:
+        # this might be easy to uderstand, but is inssuffecient for run time.
+        # if we have to run this on each insert and remove, then we will greatly
+        # slow our algorithm by adding an O(n^3) operation
+        self.D = full((9, 9, 9), False)
+        for i in range(9):
+            for j in range(9):
+                for k in range(9):
+                    self.D[i][j][k] = self.is_safe_to_insert(k+1, i, j)
+
+    def update_D(self, num: int, row: int, col: int, tf) -> None:
+        """on insertion of a num into X at row col, how do the domains change?"""
+        for i in range(9):
+            if self.X[i][col] == 0:
+                self.D[i][col][num-1] = tf
+            if self.X[row][i] == 0:
+                self.D[row][i][num-1] = tf
+        for i in range(3):
+            a = row - row % 3 + i
+            for j in range(3):
+                b = col - col % 3 + j
+                if(self.X[a][b] == 0):
+                    self.D[a][b][num-1] = tf
+
+    def is_viable(self):
+        for i in range(9):
+            for j in range(9):
+                if self.X[i][j] == 0 and (self.D[i][j] == False).all():
+                    return False
+        return True
+
+    def insert_D(self, num: int, row: int, col: int) -> None:
+        self.update_D(num, row, col, False)
+
+    def remove_D(self, num: int, row: int, col: int) -> None:
+        self.update_D(num, row, col, True)
+
+    def insert(self, num: int, row: int, col: int, use_domains: bool = False) -> None:
+        if not self.is_safe_to_insert(num, row, col):
+            raise InvalidInsert
+        self.X[row][col] = num
+        if use_domains:
+            self.insert_D(num, row, col)
+            if not self.is_viable():
+                self.remove(row, col)
+                raise InvalidInsert
+
+    def remove(self, row: int, col: int, use_domains: bool = False) -> None:
+        num = self.X[row][col]
+        if num == 0:
+            raise CantRemoveFromBlank
+        self.X[row][col] = 0
+        if use_domains:
+            self.remove_D(num, row, col)
+
+    def get_least_constraining_blank(self) -> tuple[int, int]:
+        best, res_i, res_j = 0, 0, 9
+        for i in range(9):
+            for j in range(9):
+                size = 0
+                for k in range(9):
+                    if(self.D[i][j][k] == True):
+                        size += 1
+                if(size < best):
+                    res_i, res_j = i, j
+        return res_i, res_j
+
+    #######################################################################################################
+    # the backtrcking algorithm
+    #######################################################################################################
+
+    def back_tracking_attempt(self, forward_checking: bool = False, least_constraining: bool = False) -> ndarray:
+        self.increment_attempt()
 
         try:
-            x, y = puzzle.get_first_blank()
-            for k in range(1, 10):
-                try:
-                    # the case where next_puzzle is computed, meaning that it is
-                    # possible to insert k into X[i][j], so we should try this
-                    # and recursivly call backtracking on it
-                    result_puzzle = self.naive_back_tracking_attempt(
-                        puzzle=puzzle.next_state(num=k, row=x, col=y))
-                except InvalidSudokuGameState:
-                    pass
-
+            # will raise NoBlanks if puzzle is solved!
+            row, col = self.get_first_blank()
         except NoBlanks:
-            # nothing is blank, puzzle solved!
-            return puzzle
+            # by design, if we give puzzle from the state that is valid,
+            # and we reach this section of the code, then we know the puzzle
+            # is solved, but really, we should check if the puzzle is valid
+            # NOTE: we only need to do this check in the case that teh puzzle
+            # is alreday solved when we supply it to NBTA.
+            return self.X
 
-            # continue back tracking, if eventually we reach contradiction,
-            if isinstance(result_puzzle, ndarray):
-                # the case where the result puzzle was completed!
-                #  return the puzzle as the final solution
-                return result_puzzle
+        for num in range(1, 10):
+            # the case where next_puzzle is computed, meaning that it is
+            # possible to insert k into X[i][j], so we should try this
+            # and recursivly call backtracking on it
+            try:
+                self.insert(num, row, col, forward_checking)
+                res = self.back_tracking_attempt(
+                    forward_checking, least_constraining)
+                if isinstance(res, ndarray):
+                    return res
 
-                # this k caused a issue, either it can't be inserted, or
-                # it can be inserted, but caused a deeper issue that could
-                # not be resolved, try k+1
+            except NoBlanks:
+                # by design, if we give puzzle from the state that is valid,
+                # and we reach this section of the code, then we know the puzzle
+                # is solved, but really, we should check if the puzzle is valid
+                return self.X
 
-        # at this point, for a given blank spot in the
-        # puzzle, we have tried to insert all numbers,
-        # but none were suitable.  So puzzle is not solvable
-        raise ImpossiblePuzzle("Puzzle is intractible")
+            except InvalidInsert:
+                # if the result puzzle is in valid, move on and try num+1
+                pass
 
-    def naive_back_tracking(self, max_attempts=10000):
-        self.reset_naive_back_tracking_attempt_counter(max_attempts)
+            except PuzzleUnsolvable:
+                # if our current puzzle is unsolvable, but we have more to
+                # numbers to chekc continue
+                self.remove(row, col, forward_checking)
 
-        try:
-            solution = self.naive_back_tracking_attempt(
-                puzzle=self.initial_puzzle)
+        # we checked all the numbers for a given spot, and they did not fit
+        # for the puzzle, so need to raise puzzle unsolved
+        raise PuzzleUnsolvable
 
-        except MaxAtteptsReached:
-            return False, max_attempts
-
-        except ImpossiblePuzzle:
-            return False, max_attempts
-
-        return solution, max_attempts - self.naive_back_tracking_attempt_counter
-
-#######################################################################################################
-# backtracking with forward checking
-#######################################################################################################
-    def back_tracking_with_forward_checking_attempt(self, puzzle: ndarray):
-        if self.back_tracking_with_forward_checking_couter <= 0:
-            # give up, because the naive way is too long
-            raise MaxAtteptsReached(f"Max attempts reached")
-
-        # attempting a gamestate
-        self.back_tracking_with_forward_checking_couter -= 1
-
-        # this is the naive part, attempt to fill the first blank tile we see
-        first_blank_tile = self.get_first_blank(puzzle)
-        if(not first_blank_tile):
-            # nothing is blank, puzzle solved!
-            return puzzle
-
-        x, y = first_blank_tile
-
-        #  compute domains of the puzzle
-        for k in range(1, 10):
-
-            next_puzzle, next_puzzle_domain = __class__.attempt_insert_num(
-                puzzle=puzzle, num=k, row=x, col=y)
-
-            if isinstance(next_puzzle, ndarray):
-                # the case where next_puzzle is computed, meaning that it is
-                # possible to insert k into X[i][j], so we should try this
-                # and recursivly call backtracking on it
-
-                result_puzzle = self.naive_back_tracking_attempt(
-                    puzzle=next_puzzle)
-
-                # continue back tracking, if eventually we reach contradiction,
-                if isinstance(result_puzzle, ndarray):
-                    # the case where the result puzzle was completed!
-                    #  return the puzzle as the final solution
-                    return result_puzzle
-
-                # this k caused a issue, either it can't be inserted, or
-                # it can be inserted, but caused a deeper issue that could
-                # not be resolved, try k+1
-
-        # at this point, for a given blank spot in the
-        # puzzle, we have tried to insert all numbers,
-        # but none were suitable.  So puzzle is not solvable
-        raise ImpossiblePuzzle("Puzzle is intractible")
-
-    def back_tracking_with_forward_checking(self,  max_attempts=10000):
-        self.reset_back_tracking_with_forward_checking_couter(max_attempts)
-
-        try:
-            solution = self.naive_back_tracking_attempt(
-                puzzle=self.initial_puzzle)
-
-        except MaxAtteptsReached:
-            return False, max_attempts
-
-        except ImpossiblePuzzle:
-            return False, max_attempts
-
-        return solution, max_attempts - self.naive_back_tracking_attempt_counter
-
-
-if __name__ == '__main__':
-    SS = SudokuSolver("../test_sudoku_problems/example_a.sd")
-    res = SS.naive_back_tracking()
-    print(res)
+    def back_tracking(self, heuristic: BackTrackingHeuristics = BackTrackingHeuristics.NAIVE) -> tuple[ndarray, int]:
+        self.attempt = 0
+        return self.back_tracking_attempt(forward_checking=heuristic != BackTrackingHeuristics.NAIVE), self.attempt
