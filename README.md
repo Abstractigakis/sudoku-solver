@@ -1,42 +1,17 @@
 # Sudoku Sovler
+
 ## Problem Statement
 
-For the rules of sudoku, google it, and play some games!
-
-The objective is to create an algorithm that can effeciently solve any valid sudoku puzzle.
-
-To complete this, we will use the backtracking algorithm, a bruteforce depth-first-search.
-
-A sudoku problem can be represented by a $9$ x $9$ tensor called $X$ where $X_{i,j}$ is an integer between $0$ and $9$. $X_{i,j} = 0$ is the case where the tile is empty.
-
-To keep track of where we can add numbers, we will create a $9$ x $9$ x $9$ boolean tensor called $D$.  This is to be thought of as the domains of possibilites for each $X_{i,j}$, where $D_{i,j,k}$ is $1$ if it is possible to insert $k$ intp $X_{i,j}$ without breaking the rules of Sudoku, and $0$ otherwise.
-
-Some facts to realize is that if we know a number on a tile conclusively, we can know that the entire tensor for $D_{i,j}$ should be filled with falses, because no value can be inserted in that space.  Conversly, if a tile is not known yet, then at least one of the entries in the associated domain should be true.  More susictly,
-
+For the rules of sudoku, google it, and play some games! A sudoku problem can be represented by a $9$ x $9$ tensor called $X$ where $X_{i,j}$ is an integer between $0$ and $9$. $X_{i,j} = 0$ is the case where the tile is empty.  To keep track of where we can add numbers, we will create a $9$ x $9$ x $9$ boolean tensor called $D$.  This is to be thought of as the domains of possibilites for each $X_{i,j}$, where $D_{i,j,k}$ is $1$ if it is possible to insert $k$ intp $X_{i,j}$ without breaking the rules of Sudoku, and $0$ otherwise. Some facts to realize is that if we know a number on a tile conclusively, we can know that the entire tensor for $D_{i,j}$ should be filled with falses, because no value can be inserted in that space.  Conversly, if a tile is not known yet, then at least one of the entries in the associated domain should be true.  More susinctly,
 $$X_{i,j} \neq 0 \iff D_{i,j,k} = 0 \ \forall k$$
+Also Notice that given a gamestate $X$ we can uniquley compute the Domains $D$
 
-Also Notice that given a gamestate $X$ we can uniquley compute the Domains $D$ 
+## Strategies
 
-## Dealing with concurrency
+We will create 3 diffeerent strategies (and possibly more) to solve the sudoku puzzles, each with greater degrees of effecincy.  NOTE: when we say effeciency, we are referring to the number of attempts the puzzle sover must make, where an attempt is a square that it tries to fill.  THe goa is to minimize the number of attempts.
 
-With all of the concurrency requiremnets, it seems clear that functional programming is better suited.  We will need a better formulation of the process in place.
+First we will try a naive brute force approach, where we just guess number in a depth first search until we solve the problem.  Then we will implement forward checking, in where when we try and insert a number into the puzzle, we chekc to see if this makes any other square on the board impossible before proceeding.  Finally, we will look at a better method for selecting tiles, rather than selecting the tile that is the next in the list, we will look for the variable with the least contraints, and aim to fill this first.  we will then try the same thing with the most constrained tile, and compare resutls.
 
-Consider that we have $n$ Sudoku Puzzles we want to solve at the same time via back tracking.  Call these $P_{1}$ ... $P_{n}$. We should think of these as completly isolated processes, as each puzzle does not any about the other.  
+## Design Choices
 
-To solve each puzzle $P$ we run the back tracking algorithm, but we want to do this concurrently as well, i.e., for a given puzzle state $X$, there are a maximum $9^3$ options to attempt.  Call each possible Attempt for a given gamestate $A_{X_{i,j,k}}$: i.e. for the current puzzle gamestate $X$, the attempt where we place the number $k$ in tile $i,j$.  This produces a new game state to work on recursively.
-
-Notice again, we want to leverage concurrency here.  I.e. if there are $m$ possible values that $k$ can take, we want try them all in parellel.  In theory this sounds great, but it may lead to combinatorial explosion, since after only $l$ numbers inserted we will have up to $l x 9^3$ process running.  
-
-Never the less, we want to design the algorithm so that concurrent attempts can occur without issue.  When we are doing `naive back tracking` we want to be able to provide a `max_attempts` param, so that we dont run for ever.  This would mean each potential process that runs would have to increment a counter.
-
-To do this properly with python, we will instantieat the `SudokuSolver` class, which will be responsible for storing these counters and such.  Essentially, almost all methods on the class will be static to maintain our functional approach, but gives us a nice namespace for the what would otherwise be global variables.
-
-It is also important to note that by default in Numpy, `ndarray`s are actually pointers to tensors on the heap, meaning, by default, everything is 'pass by reference'.  this is fine, becasue in many cases, this is more effeceint.  But we need to be careful when mutating.  We will need to explictly pass deep copies of the `ndarray` via `myNdarray.copy()`when we want to 'pass by value'
-
-## Things to imporve
-
-can we use rust to better optimze our code?  How can we build the objects we need ndarrays to make this work?
-
-rather than pass the puzzle everywhere, and to get the domains, calculate on the fly with the `get_domains()` method, we should consider passing a gamestate object that has its own copy mehtod. A gamestate would consist of $X$ and $D$ and have methods like `attempt_insert` and `compress` to condese the representation of the gamestate.  In this way, the `SudokuSolver` could keep a memory of gamestates it has already seen, and skip.
-
-create a class for the return value from the backtracking algorithm, and custom exceptions
+For the sake of this algorithm we will be implementing all of our logic into a single class `SudokuSolve` where the puzzle and domains are stored as mutable objects. We will be passing everything as reference. This has the trade off of being very memory effecint, but does not easily lend itslef to concurrent solutions, i.e. forking the gamestate and trying to insert 2 nunmbers in parrelell.  This would require a more functional approach.  Perhaps in the future, we can rebuild with a better systems language like rust or C++, and adopt a more functional, memory hungry paradigm.
